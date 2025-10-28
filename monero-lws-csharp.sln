@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.Lws", "Monero.Lws\Monero.Lws.csproj", "{13D60EB9-423E-45E8-8E4C-6B5D953407B8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monero.Lws.IntegrationTests", "Monero.Lws.IntegrationTests\Monero.Lws.IntegrationTests.csproj", "{43B02546-3A59-4FBB-BB6E-ABDD7AB5E612}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{13D60EB9-423E-45E8-8E4C-6B5D953407B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{13D60EB9-423E-45E8-8E4C-6B5D953407B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{13D60EB9-423E-45E8-8E4C-6B5D953407B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{43B02546-3A59-4FBB-BB6E-ABDD7AB5E612}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{43B02546-3A59-4FBB-BB6E-ABDD7AB5E612}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{43B02546-3A59-4FBB-BB6E-ABDD7AB5E612}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{43B02546-3A59-4FBB-BB6E-ABDD7AB5E612}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
