@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Monero.Lws.Request;
 
-public class MoneroLwsGetUnspentOutsRequest
+public class MoneroLwsGetUnspentOutsRequest : MoneroLwsWalletRequest
 {
     [JsonPropertyName("amount")] public string Amount { get; set; } = "";
     [JsonPropertyName("mixin")] public int Mixin { get; set; } = 0;

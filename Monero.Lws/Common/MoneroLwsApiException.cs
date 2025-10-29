@@ -1,6 +1,6 @@
 namespace Monero.Lws.Common;
 
-public class MoneroLwsApiException : Exception
+public class MoneroLwsApiException(int code, string message) : Exception(message)
 {
-    
+    public readonly int Code = code;
 }
