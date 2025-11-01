@@ -7,7 +7,7 @@ dotCover cover-dotnet \
   --filters="-:Assembly=Monero.Lws.IntegrationTests;-:Assembly=testhost"
 
 dotCover merge \
-  --Source=/coverage/dotCover.IntegrationTests.output.dcvr,/coverage/dotCover.UnitTests.output.dcvr \
+  --Source=/coverage/dotCover.IntegrationTests.output.dcvr \
   --Output=/coverage/mergedCoverage.dcvr
 
 dotCover report \
@@ -16,11 +16,6 @@ dotCover report \
   --Output=/coverage/mergedCoverage.html \
   --ReportType=DetailedXML \
   --Output=/coverage/dotcover.xml
-  
-dotCover report \
-  --Source=/coverage/dotCover.UnitTests.output.dcvr \
-  --ReportType=HTML \
-  --Output=/coverage/unitCoverage.html
   
 dotCover report \
   --Source=/coverage/dotCover.IntegrationTests.output.dcvr \
