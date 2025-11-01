@@ -3,7 +3,7 @@ services:
   tests:
     build:
       context: ..
-      dockerfile: Monero.IntegrationTests/Dockerfile
+      dockerfile: Monero.Lws.IntegrationTests/Dockerfile
     environment:
       XMR_DAEMON_URI: http://node_2:18081
       XMR_LWS_URI: http://lws:8443
