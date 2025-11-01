@@ -1,6 +1,6 @@
 namespace Monero.Lws.IntegrationTests;
 
-public class UnitTest1
+public class MoneroLwsServiceIntegrationTest
 {
     [Fact]
     public void Test1()
