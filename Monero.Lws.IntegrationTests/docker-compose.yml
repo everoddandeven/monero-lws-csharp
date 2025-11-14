@@ -89,7 +89,7 @@ services:
       - node_1
 
   lws:
-    image: vtnerd/monero-lws:0.3
+    image: vtnerd/monero-lws:master
     container_name: lws
     command: >
       --daemon=tcp://node_2:18082
@@ -103,6 +103,7 @@ services:
       --confirm-external-bind
       --max-subaddresses=200
       --auto-accept-creation
+      --regtest
     volumes:
       - xmr_lws_data:/data
     ports:
