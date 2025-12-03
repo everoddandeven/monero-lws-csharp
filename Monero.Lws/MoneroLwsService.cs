@@ -13,6 +13,11 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
     private HttpClient _httpClient = client ?? new HttpClient();
     private string _username = username;
     private string _password = password;
+
+    private async Task<TResponse> SendCommandAsync<TResponse>(string method, CancellationToken cts = default)
+    {
+        return await SendCommandAsync<MoneroLwsRequest, TResponse>(method, new MoneroLwsRequest(), cts);
+    }
     
     private async Task<TResponse> SendCommandAsync<TRequest, TResponse>(string method, TRequest data,
         CancellationToken cts = default)
@@ -100,7 +105,24 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         _username = username;
         _password = password;
     }
+
+    /// <summary>
+    /// Get LWS server version.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<MoneroLwsVersion> GetVersion()
+    {
+        return await SendCommandAsync<MoneroLwsVersion>("get_version");
+    }
     
+    /// <summary>
+    /// Returns the minimal set of information needed to calculate a wallet balance,
+    /// including the balance of subaddresses. The server cannot calculate when a spend occurs without the spend key,
+    /// so a list of candidate spends is returned.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <returns></returns>
     public async Task<MoneroLwsGetAddressInfoResponse> GetAddressInfo(string address, string viewKey)
     {
         var req = new MoneroLwsWalletRequest
@@ -112,6 +134,15 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         return await SendCommandAsync<MoneroLwsWalletRequest, MoneroLwsGetAddressInfoResponse>("get_address_info", req);
     }
 
+    /// <summary>
+    /// Returns information needed to show transaction history.
+    /// The server cannot calculate when a spend occurs without the spend key,
+    /// so a list of candidate spends is returned.
+    /// The response should show a wallet's entire history, including transactions to and from subaddresses.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <returns></returns>
     public async Task<MoneroLwsGetAddressTxsResponse> GetAddressTxs(string address, string viewKey)
     {
         var req = new MoneroLwsWalletRequest
@@ -123,6 +154,12 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         return await SendCommandAsync<MoneroLwsWalletRequest, MoneroLwsGetAddressTxsResponse>("get_address_txs", req);
     }
 
+    /// <summary>
+    /// Selects random outputs to use in a ring signature of a new transaction.
+    /// </summary>
+    /// <param name="count">Mixin (name is historical).</param>
+    /// <param name="amounts">XMR amounts that need mixing.</param>
+    /// <returns></returns>
     public async Task<MoneroLwsGetRandomOutsResponse> GetRandomOuts(long count, List<string> amounts)
     {
         var req = new MoneroLwsGetRandomOutsRequest()
@@ -134,6 +171,17 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         return await SendCommandAsync<MoneroLwsGetRandomOutsRequest, MoneroLwsGetRandomOutsResponse>("get_random_outs", req);
     }
 
+    /// <summary>
+    /// Returns a list of received outputs to the wallet, including to subaddresses.
+    /// The client must determine when the output was actually spent.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <param name="amount">XMR send amount.</param>
+    /// <param name="mixin">Minimum mixin for source output.</param>
+    /// <param name="useDust">Return all available outputs.</param>
+    /// <param name="dustThreshold">Ignore outputs below this amount.</param>
+    /// <returns></returns>
     public async Task<MoneroLwsGetUnspentOutsResponse> GetUnspentOuts(string address, string viewKey, string amount,
         int mixin, bool useDust, string? dustThreshold = null)
     {
@@ -150,17 +198,33 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         return await SendCommandAsync<MoneroLwsGetUnspentOutsRequest, MoneroLwsGetUnspentOutsResponse>("get_unspent_outs", req);
     }
 
-    public async Task<MoneroLwsImportRequestResponse> ImportWallet(string address, string viewKey)
+    /// <summary>
+    /// Request an account scan from specific height.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <param name="fromHeight">Height to rescan.</param>
+    /// <returns></returns>
+    public async Task<MoneroLwsImportWalletResponse> ImportWallet(string address, string viewKey, long fromHeight)
     {
-        var req = new MoneroLwsWalletRequest()
+        var req = new MoneroLwsImportWalletRequest()
         {
             Address = address,
-            ViewKey = viewKey
+            ViewKey = viewKey,
+            FromHeight = fromHeight
         };
 
-        return await SendCommandAsync<MoneroLwsWalletRequest, MoneroLwsImportRequestResponse>("import_request", req);
+        return await SendCommandAsync<MoneroLwsImportWalletRequest, MoneroLwsImportWalletResponse>("import_request", req);
     }
 
+    /// <summary>
+    /// Check for the existence of an account or create a new one.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <param name="createAccount">Try to create new account.</param>
+    /// <param name="generatedLocally">Indicate that the address is new.</param>
+    /// <returns></returns>
     public async Task<MoneroLwsLoginResponse> Login(string address, string viewKey, bool createAccount,
         bool generatedLocally)
     {
@@ -175,6 +239,11 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         return await SendCommandAsync<MoneroLwsLoginRequest, MoneroLwsLoginResponse>("login", req);
     }
 
+    /// <summary>
+    /// Submit raw transaction to be relayed to monero network.
+    /// </summary>
+    /// <param name="tx">Raw transaction bytes, in format used by daemon p2p comms.</param>
+    /// <returns></returns>
     public async Task<MoneroLwsStatusResponse> SubmitRawTx(string tx)
     {
         var req = new MoneroLwsSubmitRawTxRequest()
@@ -183,5 +252,72 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         };
 
         return await SendCommandAsync<MoneroLwsSubmitRawTxRequest, MoneroLwsStatusResponse>("submit_raw_tx", req);
+    }
+
+    /// <summary>
+    /// Returns all subaddresses provisioned for a wallet.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <returns></returns>
+    public async Task<MoneroLwsSubaddrs> GetSubaddrs(string address, string viewKey)
+    {
+        var req = new MoneroLwsWalletRequest()
+        {
+            Address = address,
+            ViewKey = viewKey
+        };
+
+        return await SendCommandAsync<MoneroLwsWalletRequest, MoneroLwsSubaddrs>("get_subaddrs", req);
+    }
+    
+    /// <summary>
+    /// Upsert subaddresses at the specified major and minor indexes. This endpoint is idempotent.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <param name="subaddrs">Subaddresses to upsert.</param>
+    /// <param name="getAll">Whether to include all subaddresses in response.</param>
+    /// <returns></returns>
+    public async Task<MoneroLwsSubaddrs> UpsertSubaddrs(string address, string viewKey, List<MoneroLwsSubaddrsEntry> subaddrs, bool getAll)
+    {
+        var req = new MoneroLwsUpsertSubaddrsRequest()
+        {
+            Address = address,
+            ViewKey = viewKey,
+            Subaddrs = subaddrs,
+            GetAll = getAll
+        };
+
+        return await SendCommandAsync<MoneroLwsUpsertSubaddrsRequest, MoneroLwsSubaddrs>("upsert_subaddrs", req);
+    }
+    
+    /// <summary>
+    /// Provision subaddresses at specified indexes. No two clients should ever receive
+    /// the same newly provisioned subaddresses when calling this endpoint; the server
+    /// should guarantee that newly provisioned subaddresses are fresh.
+    /// </summary>
+    /// <param name="address">Standard address of the wallet.</param>
+    /// <param name="viewKey">View key bytes.</param>
+    /// <param name="majIndex">Subaddress major index.</param>
+    /// <param name="minIndex">Subaddress minor index.</param>
+    /// <param name="majCount">Number of major subaddresses to provision.</param>
+    /// <param name="minCount">Number of minor subaddresses to provision.</param>
+    /// <param name="getAll">Whether to include all subaddresses in response.</param>
+    /// <returns></returns>
+    public async Task<MoneroLwsSubaddrs> ProvisionSubaddrs(string address, string viewKey, long majIndex, long minIndex, long majCount, long minCount, bool getAll)
+    {
+        var req = new MoneroLwsProvisionSubaddrsRequest()
+        {
+            Address = address,
+            ViewKey = viewKey,
+            MajIndex = majIndex,
+            MinIndex = minIndex,
+            MajCount = majCount,
+            MinCount = minCount,
+            GetAll = getAll
+        };
+
+        return await SendCommandAsync<MoneroLwsProvisionSubaddrsRequest, MoneroLwsSubaddrs>("provision_subaddrs", req);
     }
 }
