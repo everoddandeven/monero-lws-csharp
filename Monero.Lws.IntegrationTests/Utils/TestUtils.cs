@@ -15,7 +15,7 @@ internal static class TestUtils
     {
         if (_lwsService == null)
         {
-            _lwsService = new MoneroLwsService(LwsServiceUri, "/lws", Username, Password);
+            _lwsService = new MoneroLwsService(LwsServiceUri, "", Username, Password);
         }
 
         return _lwsService;

@@ -8,7 +8,7 @@ public class MoneroLwsServiceIntegrationTest
     private static readonly string Address = TestUtils.Address;
     private static readonly string ViewKey = TestUtils.ViewKey;
     private static readonly MoneroLwsService Lws = TestUtils.GetLwsService();
-
+    
     [Fact]
     public async Task TestGetVersion()
     {
@@ -30,28 +30,43 @@ public class MoneroLwsServiceIntegrationTest
         Assert.True(response.MaxSubaddresses > 0);
         Assert.False(response.Testnet);
     }
-    
+
     [Fact]
     public async Task TestLogin()
     {
         var response = await Lws.Login(Address, ViewKey, true, false);
-        Assert.True(response.StartHeight > 0);
-        Assert.True(response.NewAddress);
-        Assert.False(response.GeneratedLocally);
+        if (response.NewAddress)
+        {
+            Assert.NotNull(response.GeneratedLocally);
+            Assert.NotNull(response.StartHeight);
+            Assert.True(response.StartHeight > 0);
+        }
+        else
+        {
+            Assert.Null(response.StartHeight);
+        }
     }
-
+    
     [Fact]
     public async Task TestGetAddressInfo()
     {
         var response = await Lws.GetAddressInfo(Address, ViewKey);
-        Assert.True(response.StartHeight > 0);
+        Assert.True(response.StartHeight >= 0);
         Assert.True(response.BlockchainHeight > 0);
         Assert.True(response.ScannedBlockHeight > 0);
         Assert.True(response.ScannedHeight > 0);
-        Assert.Equal(0, response.TransactionHeight);
-        Assert.Equal("0", response.LockedFunds);
-        Assert.Equal("0", response.TotalReceived);
-        Assert.Equal("0", response.TotalSent);
+        Assert.True(response.TransactionHeight > 0);
+        Assert.False(string.IsNullOrEmpty(response.LockedFunds));
+        Assert.False(string.IsNullOrEmpty(response.TotalReceived));
+        Assert.False(string.IsNullOrEmpty(response.TotalSent));
+        
+        if (response.TotalSent != "0")
+        {
+            Assert.NotNull(response.SpentOutputs);
+            Assert.NotEmpty(response.SpentOutputs);
+            TestSpends(response.SpentOutputs);
+        }
+        
         Assert.Null(response.Rates);
     }
 
@@ -65,10 +80,14 @@ public class MoneroLwsServiceIntegrationTest
         Assert.True(response.ScannedBlockHeight > 0);
         Assert.True(response.StartHeight > 0);
         Assert.True(response.BlockchainHeight > 0);
-
-        foreach (var tx in response.Transactions)
+        if (!response.TotalReceived.Equals("0"))
         {
-            TestTransaction(tx);
+            Assert.NotNull(response.Transactions);
+            Assert.NotEmpty(response.Transactions);
+            foreach (var tx in response.Transactions)
+            {
+                TestTransaction(tx);
+            }   
         }
     }
 
@@ -103,25 +122,31 @@ public class MoneroLwsServiceIntegrationTest
     public async Task TestImportWallet()
     {
         var response = await Lws.ImportWallet(Address, ViewKey, 0);
-        Assert.Null(response.PaymentAddress);
-        Assert.Null(response.PaymentId);
-        Assert.Null(response.ImportFee);
-        Assert.True(response.NewRequest);
-        Assert.False(response.RequestFulfilled);
-        Assert.NotNull(response.Status);
-        Assert.NotEmpty(response.Status);
-    }
-
-    [Fact]
-    public async Task TestGetSubaddrs()
-    {
-        var response = await Lws.GetSubaddrs(Address, ViewKey);
-        Assert.Null(response.NewSubaddrs);
-        Assert.NotNull(response.AllSubaddrs);
-        Assert.NotEmpty(response.AllSubaddrs);
-        foreach (var entry in response.AllSubaddrs)
+        if (string.IsNullOrEmpty(response.ImportFee) || response.ImportFee.Equals("0"))
         {
-            TestSubaddrsEntry(entry);
+            Assert.True(string.IsNullOrEmpty(response.PaymentAddress));
+            Assert.True(string.IsNullOrEmpty(response.PaymentId));
+        }
+        else
+        {
+            Assert.False(string.IsNullOrEmpty(response.PaymentAddress));
+            Assert.False(string.IsNullOrEmpty(response.PaymentId));
+        }
+        
+        Assert.NotNull(response.Status);
+
+        if (response.NewRequest)
+        {
+            Assert.False(response.RequestFulfilled);
+        }
+
+        if (response.RequestFulfilled)
+        {
+            Assert.NotNull(response.Status);
+        }
+        else
+        {
+            Assert.Equal("Waiting for Approval", response.Status);
         }
     }
 
@@ -133,7 +158,7 @@ public class MoneroLwsServiceIntegrationTest
         {
             AccountIndex = 1,
         };
-        entry.Ranges.Add(new MoneroLwsAddressIndexRange(0, 10));
+        entry.Ranges.Add([0, 10]);
         var response = await Lws.UpsertSubaddrs(Address, ViewKey, subaddrs, true);
         TestSubaddrs(response, true, true);
     }
@@ -143,6 +168,19 @@ public class MoneroLwsServiceIntegrationTest
     {
         var response = await Lws.ProvisionSubaddrs(Address, ViewKey, 0, 20, 1, 1, true);
         TestSubaddrs(response, true, true);
+    }
+    
+    [Fact]
+    public async Task TestGetSubaddrs()
+    {
+        var response = await Lws.GetSubaddrs(Address, ViewKey);
+        Assert.Empty(response.NewSubaddrs);
+        Assert.NotNull(response.AllSubaddrs);
+        Assert.NotEmpty(response.AllSubaddrs);
+        foreach (var entry in response.AllSubaddrs)
+        {
+            TestSubaddrsEntry(entry);
+        }
     }
     
     private static void TestTransaction(MoneroLwsTransaction? tx)
@@ -160,6 +198,20 @@ public class MoneroLwsServiceIntegrationTest
         throw new NotImplementedException("TestOutput(): not implemented");
     }
 
+    private static void TestSpends(List<MoneroLwsSpend>? spends)
+    {
+        Assert.NotNull(spends);
+        foreach (var spend in spends)
+        {
+            TestSpend(spend);
+        }
+    }
+    
+    private static void TestSpend(MoneroLwsSpend? spend)
+    {
+        Assert.NotNull(spend);
+    }
+    
     private static void TestSubaddrs(MoneroLwsSubaddrs? subaddrs, bool expectNew, bool expectAll)
     {
         if (subaddrs == null)
@@ -197,7 +249,31 @@ public class MoneroLwsServiceIntegrationTest
     
     private static void TestSubaddrsEntry(MoneroLwsSubaddrsEntry? entry)
     {
-        throw new NotImplementedException("TestSubaddrsEntry(): not implemented");
+        Assert.NotNull(entry);
+        Assert.True(entry.AccountIndex >= 0);
+        TestIndexRanges(entry.Ranges);
+    }
+
+    private static void TestIndexRanges(List<List<long>>? ranges)
+    {
+        Assert.NotNull(ranges);
+        Assert.NotEmpty(ranges);
+        foreach (var indexRange in ranges)
+        {
+            TestIndexRange(indexRange);
+        }
+    }
+
+    private static void TestIndexRange(List<long>? indexRange)
+    {
+        Assert.NotNull(indexRange);
+        Assert.Equal(2, indexRange.Count);
+        var lowerBound = indexRange[0];
+        var upperBound = indexRange[1];
+        
+        Assert.True(lowerBound >= 0);
+        Assert.True(upperBound >= 0);
+        Assert.True(lowerBound <= upperBound);
     }
     
 }

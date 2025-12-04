@@ -8,7 +8,7 @@ using Monero.Lws.Response;
 
 namespace Monero.Lws;
 
-public class MoneroLwsService(Uri uri, String lwsPath, string username, string password, HttpClient? client = null)
+public class MoneroLwsService(Uri uri, string lwsPath, string username, string password, HttpClient? client = null)
 {
     private HttpClient _httpClient = client ?? new HttpClient();
     private string _username = username;
@@ -23,12 +23,13 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
         CancellationToken cts = default)
     {
         var jsonSerializer = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var body = JsonSerializer.Serialize(data, jsonSerializer);
         var httpRequest = new HttpRequestMessage
         {
             Method = HttpMethod.Post,
             RequestUri = new Uri(uri, $"{lwsPath}/{method}"),
             Content = new StringContent(
-                JsonSerializer.Serialize(data, jsonSerializer),
+                body,
                 Encoding.UTF8, "application/json")
         };
         httpRequest.Headers.Accept.Clear();
@@ -214,7 +215,7 @@ public class MoneroLwsService(Uri uri, String lwsPath, string username, string p
             FromHeight = fromHeight
         };
 
-        return await SendCommandAsync<MoneroLwsImportWalletRequest, MoneroLwsImportWalletResponse>("import_request", req);
+        return await SendCommandAsync<MoneroLwsImportWalletRequest, MoneroLwsImportWalletResponse>("import_wallet_request", req);
     }
 
     /// <summary>
